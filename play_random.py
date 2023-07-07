@@ -1,5 +1,5 @@
 from games import ConnectFour
-from RandomPlayer import RandomPlayer
+from agents.RandomPlayer import RandomPlayer
 
 if __name__ == "__main__":
       game = ConnectFour()

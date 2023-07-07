@@ -1,6 +1,6 @@
 import torch
 from games import ConnectFour
-from DeepQ import DQNAgent, DQN
+from agents.DeepQ import DQNAgent, DQN
 
 if __name__ == "__main__":
     # Initialize the game
