@@ -7,7 +7,7 @@ class RandomPlayer:
             self.args = args
 
       def selfPlay(self):
-            np.random.seed(args['random_state'])
+            np.random.seed(self.args['random_state'])
             memory = []
             player = 1
             state = self.game.get_initial_state()
@@ -41,11 +41,3 @@ class RandomPlayer:
                         return returnMemory
 
                   player = self.game.get_opponent(player)
-
-from games import ConnectFour
-
-if __name__ == "__main__":
-      game = ConnectFour()
-      args = {'random_state': 42}
-      player = RandomPlayer(game, args)
-      player.selfPlay()
