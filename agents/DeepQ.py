@@ -9,6 +9,7 @@ class DQN(nn.Module):
       def __init__(self, input_shape, action_size):
             super(DQN, self).__init__()
             # Defining three linear layers
+            # input shape is game.row_count * game.column_count (42)
             self.fc1 = nn.Linear(input_shape, 128)
             self.fc2 = nn.Linear(128, 128)
             self.fc3 = nn.Linear(128, action_size)
@@ -52,37 +53,36 @@ class DQNAgent:
                         return action_values.argmax().item()
 
       def train(self):
-            # Ensure we have enough experiences in memory to start training
-            if len(self.memory) < self.args['batch_size']:
-                  return
-            # Randomly sampling from the memory for a batch of experiences
-            batch = random.sample(self.memory, self.args['batch_size'])
+            random.shuffle(self.memory)
+            for batchIdx in range(0, len(self.memory), self.args['batch_size']):
+                  # Ensure we have enough experiences in memory to start training
+                  if len(self.memory) < self.args['batch_size']:
+                        return
+                  # Randomly sampling from the memory for a batch of experiences
+                  batch = self.memory[batchIdx:min(len(self.memory) - 1, batchIdx + self.args['batch_size'])] # Change to memory[batchIdx:batchIdx+self.args['batch_size']] in case of an error
 
-            states, actions, rewards, dones = zip(*batch)
-            states = torch.FloatTensor(np.array(states))
-            actions = torch.LongTensor(actions)
-            rewards = torch.FloatTensor(rewards)
-            next_states = torch.FloatTensor(np.append(states[1:], self.game.get_initial_state()))
-            dones = torch.BoolTensor(dones)
+                  states, actions, rewards, dones = zip(*batch)
+                  states = torch.FloatTensor(np.array(states))
+                  actions = torch.LongTensor(actions)
+                  rewards = torch.FloatTensor(rewards)
+                  next_states = torch.FloatTensor(np.append(states[1:], self.game.get_initial_state()))
+                  dones = torch.BoolTensor(dones)
 
-            # Q-learning updates
-            current_q_values = self.model(states).gather(1, actions.unsqueeze(1))
-            next_q_values = self.model(next_states).max(1)[0].detach()
-            target_q_values = rewards + self.args['gamma'] * next_q_values * (1 - dones)
+                  # Q-learning updates
+                  print(states.shape, states)
+                  # current_q_values = self.model(states).gather(1, actions)
+                  next_q_values = self.model(next_states).max(1)[0].detach()
+                  target_q_values = rewards + self.args['gamma'] * next_q_values * (1 - dones)
 
-            # Compute loss and perform backpropagation
-            loss = nn.MSELoss()(current_q_values, target_q_values.unsqueeze(1))
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+                  # Compute loss and perform backpropagation
+                  loss = nn.MSELoss()(current_q_values, target_q_values.unsqueeze(1))
+                  self.optimizer.zero_grad()
+                  loss.backward()
+                  self.optimizer.step()
 
-            # Reduce exploration rate
-            if self.epsilon > self.args['epsilon_min']:
-                  self.epsilon *= self.args['epsilon_decay']
-
-      def remember(self, state, action, value, done):
-            # Store experiences in memory
-            self.memory.append((state, action, value, done))
+                  # Reduce exploration rate
+                  if self.epsilon > self.args['epsilon_min']:
+                        self.epsilon *= self.args['epsilon_decay']
 
       def learn(self):
             # Initialize state
@@ -97,23 +97,31 @@ class DQNAgent:
                         # Get action based on state
                         action = self.get_action(state)
                         # Get next state based on action
-                        state = self.game.get_next_state(state, action, player)
-
-                        print(f"Player {player} played action {action} and the state is now:"                        )
-                        print(state)
-                        print()
-
-                        # Get value and check if game is done
-                        value, done = self.game.get_value_and_terminated(state, action)
-                        print(value, done)
-                        # Check win condition and assign value
-                        if value == 1:
-                              print(f"Player {player} won!")
-                              print()
-                              break
+                        next_state = self.game.get_next_state(state, action, 1)
+                        # Get reward and check if game is done
+                        reward, done = self.game.get_value_and_terminated(state, action)
+                        # Check win condition and assign reward
+                        if self.game.check_win(next_state, action):
+                              reward = 1
+                        elif not np.any(next_state==0):
+                              reward = 0
+                        else:
+                              reward = -0.01
+                        # Store experiences
+                        self.memory.append((state, action, reward, next_state, done))
+                        if is_terminal:
+                              returnMemory = []
+                              for hist_state, hist_action, hist_reward, hist_next_state, hist_done in self.memory:
+                                    # hist_outcome = value if hist_player == player else self.game.get_opponent_value(value)
+                                    returnMemory.append((
+                                          self.game.get_encoded_state(hist_state),
+                                          hist_action,
+                                          hist_reward,
+                                          self.game.get_encoded_state(hist_next_state),
                                           
-                        # store experience
-                        self.remember(state, action, value, done)
+                                    ))
+                              return returnMemory
+                        state = next_state
                         self.train()
                         player = self.game.get_opponent(player)
 

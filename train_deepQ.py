@@ -6,7 +6,7 @@ if __name__ == "__main__":
     # Initialize the game
     game = ConnectFour()
     # Initialize the model
-    model = DQN(game.row_count*game.column_count, game.action_size)
+    model = DQN(game.row_count*game.column_count, game.action_size) # action size is 7
     # Initialize the optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
     # Define the hyperparameters
