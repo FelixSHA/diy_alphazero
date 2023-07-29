@@ -13,10 +13,27 @@ class ConnectFour:
     def get_initial_state(self):
         return np.zeros((self.row_count, self.column_count))
     
+    # def get_next_state(self, state, action, player):
+    #     row = np.max(np.where(state[:, action] == 0))
+    #     state[row, action] = player
+    #     return state
+
     def get_next_state(self, state, action, player):
-        row = np.max(np.where(state[:, action] == 0))
-        state[row, action] = player
-        return state
+        """
+        Get the game state after a given action.
+        The player drops a piece in the specified column (action).
+        """
+        # Find the lowest available row in the column
+        row = np.max(np.where(state[:, action] == 0), initial=-1)
+        if row == -1:
+            # If the column is full, return the current state
+            return state
+
+        next_state = state.copy()
+        next_state[row, action] = player
+        return next_state
+
+
     
     def get_valid_moves(self, state):
         if len(state.shape) == 3:
@@ -77,3 +94,13 @@ class ConnectFour:
             encoded_state = np.swapaxes(encoded_state, 0, 1)
         
         return encoded_state
+    
+    def get_single_array_state(self, state):
+        """
+        Return the state as a single 2D array. MCTS player's pieces are marked as -1, 
+        the random actor's pieces as 1, and all other fields as 0.
+        """
+        single_array_state = np.zeros_like(state[0])
+        single_array_state += state[0] * -1
+        single_array_state += state[1]
+        return single_array_state
