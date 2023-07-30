@@ -10,11 +10,13 @@ The implementation uses the following Python libraries:
 - PyTorch
 - pandas
 - tqdm
+- seaborn
+- matplotlib
 
 To install these libraries, use the command:
 
 ```
-pip install numpy torch pandas tqdm
+pip install numpy torch pandas tqdm seaborn matplotlib
 ```
 
 ## Usage
